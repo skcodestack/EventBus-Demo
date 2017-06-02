@@ -152,26 +152,40 @@ public class EventBus {
     private CopyOnWriteArrayList<SubscriberMethod> obtainSubscriberMethods(Object activity) {
 
         CopyOnWriteArrayList<SubscriberMethod> list=new CopyOnWriteArrayList<>();
-        Method[] methods =
-                activity.getClass().getDeclaredMethods();
-        for (int i = 0; i < methods.length; i++) {
-            Method method = methods[i];
-            Subscriber annotation = method.getAnnotation(Subscriber.class);
-            if(annotation == null){
-                continue;
-            }
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            if(parameterTypes == null || parameterTypes.length!=1){
-                throw new RuntimeException("eventbus method params size must be one!");
+        Class<?> clazz = activity.getClass();
+        while(clazz != null){
+
+            String clazzName = clazz.getName();
+            if(clazzName.startsWith("android.") || clazzName.startsWith("java.")
+                    || clazzName.startsWith("javax.") || clazzName.startsWith("org.")){
+                break;
             }
 
-            ThreadMode threadMode = annotation.value();
-            Class<?> parameterType = parameterTypes[0];
+            Method[] methods =
+                    clazz.getDeclaredMethods();
+            for (int i = 0; i < methods.length; i++) {
+                Method method = methods[i];
+                Subscriber annotation = method.getAnnotation(Subscriber.class);
+                if(annotation == null){
+                    continue;
+                }
+                Class<?>[] parameterTypes = method.getParameterTypes();
+                if(parameterTypes == null || parameterTypes.length!=1){
+                    throw new RuntimeException("eventbus method params size must be one!");
+                }
 
-            SubscriberMethod subscriberMethod = new SubscriberMethod(method,threadMode,parameterType);
+                ThreadMode threadMode = annotation.value();
+                Class<?> parameterType = parameterTypes[0];
 
-            list.add(subscriberMethod);
+                SubscriberMethod subscriberMethod = new SubscriberMethod(method,threadMode,parameterType);
+
+                list.add(subscriberMethod);
+            }
+
+            clazz = clazz.getSuperclass();
         }
+
+
 
 
         return list;
